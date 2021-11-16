@@ -1,0 +1,125 @@
+---
+title: IBV Transmission study to determine the transmission of pathogenic IBV (Challenge)
+  among vaccinated Commercial Broilers compared to that of unvaccinated birds
+author: "Egil A.J.Fischer"
+date: "16-11-2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+
+Estimation of transmission parameters from the IBV experiment in vaccinated and unvaccinated birds. 
+
+# Setting
+
+## libraries
+Load required libraries
+
+```{r pressure, echo=FALSE}
+## First specify the packages of interest
+packages = c("tidyverse",
+             "openxlsx",
+             "ggplot2")
+
+## Now load or install&load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
+Source required code-files including loading the data
+
+```{r echo=FALSE}
+source("src/DataModel.R")
+source("src/mapIBVdata.R")
+source("src/FinalSizeFastImplementation.R")
+
+```
+
+## visualize data
+
+```{r}
+ggplot(data = sir.data[[1]])+
+  geom_path(aes(x = ndpch, y = I/N, colour = Strain, linetype = Vaccinated))+
+  labs(x = "dpch",y = "Fraction infecteds")+
+  theme_classic()
+
+ggplot(data = sir.data[[1]])+
+  geom_point(aes(x = ndpch, y = C))+
+  labs(x = "dpch",y = "Cases")+
+  theme_classic()+facet_grid(Strain~Vaccinated)
+
+
+```
+
+For the unvaccinated groups in the "GA08" strain challenged group all contact and seeder birds were positive at the first measurement. 
+In the vaccinated groups only a few seeders were positive, but none of the contacts. 
+
+Two different types of analyses will be done to estimate the upper- or lower bounds of transmission parameters. First I will use the final size method in which we use the total number of infected birds during the experiment to calculate the basic reproduction number. 
+Secondly by assuming the all positive seeder birds were positive at day 0 we calculate the transmission parameter. 
+
+# Final size
+```{r}
+#exclude M41
+sir.data[[1]] <- sir.data[[1]]%>%filter(Strain != "M41")
+sir.data[[2]] <- sir.data[[2]]%>%filter(Strain != "M41")
+
+#get final sizes and initial infections
+final.size <- sir.data[[1]]%>%
+  select(Group,Vaccinated, S,I)%>%
+  group_by(Group,Vaccinated)%>%
+  summarize(fs = min(S),
+            iS = 10,
+            iI = min(10,max(I)),
+            iR = 10-min(10,max(I)))
+FinalSize.dataframe <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, alpha = 0.05,onesided = TRUE, max.val = 250)
+}
+FinalSize.dataframe(final.size, "Yes")%>%select(c(point.est,ci.ll,pval.below1))
+FinalSize.dataframe(final.size, "No")%>%select(c(point.est,ci.ul,pval.above1))
+
+```
+# Assume all seeders in unvaccinated to be infectious at first moment
+```{r}
+glmdat <- sir.data[[1]]%>%filter(S>0&I>0)
+fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat)
+summary(fit)
+signif(exp(cumsum(fit$coefficients)),3)
+
+fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat)
+summary(fit)
+signif(exp(cumsum(fit$coefficients)),3)
+# no sound estimation we redo the estimation and now we assume that the infectious birds were actually infected at dpch = 1
+adapt.sir.data <- sir.data[[1]]
+addfirstday <- adapt.sir.data%>%filter(ndpch ==1)
+addfirstday$dpch<-"1.dpch"
+addfirstday <- addfirstday%>%group_by(Group)%>%mutate(I = min(I,10),
+                                                      S = 10,
+                                                      C = 0)
+addfirstday$C <- (adapt.sir.data%>%filter(ndpch ==1))$I-addfirstday$I
+addfirstday<- data.frame(addfirstday)
+adapt.sir.data <- rbind(addfirstday, adapt.sir.data)
+
+#fit the model
+glmdat <- adapt.sir.data%>%filter(S>0&I>0)
+
+fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat)
+summary(fit)
+signif(exp(cumsum(fit$coefficients)),3)
+
+fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat)
+summary(fit)
+signif(exp(cumsum(fit$coefficients)),3)
+
+```

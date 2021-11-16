@@ -1,0 +1,44 @@
+---
+title: IBV Transmission study to determine the transmission of pathogenic IBV (Challenge)
+  among vaccinated Commercial Broilers compared to that of unvaccinated birds
+author: "Egil A.J.Fischer"
+date: "16-11-2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+
+Estimation of transmission parameters from the IBV experiment in vaccinated and unvaccinated birds. 
+
+# Setting
+
+## libraries
+Load required libraries
+
+```{r pressure, echo=FALSE}
+## First specify the packages of interest
+packages = c("tidyverse",
+             "openxlsx")
+
+## Now load or install&load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
+Source required code-files
+
+```{r echo=FALSE}
+source(mapIBVdata.R)
+
+```

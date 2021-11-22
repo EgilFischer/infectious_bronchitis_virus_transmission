@@ -37,3 +37,4 @@ sir.data = reform.SIR.data(dataIBV,
 #     data =sir.data[[1]][sir.data[[1]]$I>0,])
 # summary(fit)
 # sir.data
+

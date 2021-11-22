@@ -123,3 +123,17 @@ summary(fit)
 signif(exp(cumsum(fit$coefficients)),3)
 
 ```
+
+
+# Some considerations for setting up follow-up experiments
+
+The number of successfull challenges in the vaccine groups was limited. Smaller groups could increase the risk of complete failure. 
+```{r}
+# The probability of an successfull challenge in the vaccine seeders is:
+p = 7/20
+#probability of zero succesfull challenges
+dbinom(0, 5,p)
+dbinom(0, 6,p)
+dbinom(0, 7,p)
+
+```

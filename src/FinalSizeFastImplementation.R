@@ -78,6 +78,7 @@ pFS <- function(R,x,s0,i0,r0= NULL){
 ###Function to determine the probability of more extreme values given R####
 # r = R, x = final number of cases, s0 = initial susceptibles, i0 = initial infectious, comp = the type of extreme 
 #rm(pExtremes)
+
 pExtremes<-  function(r,x,s0in,i0in,r0in = NULL, comp = `<`){
   #create all possible outcomes of these transmission experiments
   #this means all possibilities between 0 and s0 contact infection (hence s0 + 1 options per trial)
@@ -94,7 +95,8 @@ pExtremes<-  function(r,x,s0in,i0in,r0in = NULL, comp = `<`){
                      nrow =prod(s0in+1))[,1]
   }
   #produce final size distribution for value r
-  final.size.dist <- distFSfast(r,s0in,i0in, r0in);
+final.size.dist <- distFSfast(r,s0in,i0in, r0in);
+
   #define function for this distribution for the probability of a certain number of cases x in each of the trials
   pFSloc<- function(v){
     return(prod(mapply(function(i,j) {final.size.dist[i,j+1]},
@@ -127,22 +129,27 @@ pExtremes<-  function(r,x,s0in,i0in,r0in = NULL, comp = `<`){
 #                  Includes confidence interval size 1- alpha and R >= 1 test                    #
 #                                                                                                #
 ##################################################################################################
+
 # Final Size function for x cases, s0 initially susceptible and i0 initially infectious animals.r0 for recovered
 # Optional set sigficance level alpha, onesided testing 
 # max.val is the maximum value used for optimization.  
-FinalSize<- function(x,s0,i0,r0 = NULL, alpha = 0.05, onesided = FALSE, max.val = 250, decimals = 4){
+FinalSize<- function(x,s0,i0,r0 = NULL, 
+                     alpha = 0.05, 
+                     onesided = FALSE, 
+                     max.val = 250, 
+                     decimals = 4){
   res <- data.frame(point.est = -999)
   #determine the point estimate by optimization of the log-likelihood function
   res$point.est <- ifelse(sum(x)==0,0,
                           ifelse(sum(x)==sum(s0),Inf,
                     optimize(interval = c(0.,max.val),
-                            f = function(R){-log(pFS(R,x,s0,i0,r0))})$minimum))
+                        f = function(R){-log(pFS(R,x,s0,i0,r0))})$minimum))
   #determine the confidence intervals
   #if one-sided is FALSE both sides, either only lower or upper limit of CI
   #lowerlimit is found for values of R for which the probability of extremes below the observations 
   res$ci.ll <- ifelse(sum(x)==0,0,
                       uniroot(interval = c(10^-10,max.val),extendInt = "yes",
-                              f = function(R){(pExtremes(R,x,s0,i0,r0,comp = `>=`) - alpha / (2 - onesided))})$root)
+                          f = function(R){(pExtremes(R,x,s0,i0,r0,comp = `>=`) - alpha / (2 - onesided))})$root)
   #upperlimit is found for values of R for which the probability of extremes above the observations
   res$ci.ul <- ifelse(sum(x)==sum(s0),Inf,
                       uniroot(interval = c(0,max.val),extendInt = "yes",

@@ -23,6 +23,7 @@ fill.type.na.rename <- function(data){
   return(new.data[!is.na(data$Sample.type),])#remove empty records
 }
 
+
 #uses file with states(positive / negative) already determined manually from Ct value ####
 reform.SIR.data <- function(data, 
                             sampleday.vars,
@@ -80,7 +81,7 @@ reform.data<- function(data,
     }
     
     #change the colnames
-    colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","Strain")
+colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","Strain")
   }
   else{
     aggregate.data <- data #already as input presented.
@@ -179,6 +180,7 @@ reform.data<- function(data,
                        data.frame(dpch = sampleday.vars[day],
                                   ndpch = day,
                                   cases = aggregate.data.frame(aggregate.data[,sampleday.vars[day]], 
+
                                                                by = list(aggregate.data$Group, aggregate.data$Vaccinated,aggregate.data$Strain), 
                                                                FUN = function(x){0}))
         )}
@@ -191,13 +193,13 @@ reform.data<- function(data,
                  C = cases$cases.x, 
                  N = n$x)
   
+
   colnames(output)[c(3:9)]<- c("Group","Vaccinated","Strain","I","S","C","N")
-  
+
   return(list(output,aggregate.data))
   
   
 }
-
 
 ###Determine state based on model ####
 SIR.state<- function(in.data,#vector of consecutive samples

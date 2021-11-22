@@ -6,6 +6,7 @@
 #                                       e.a.j.fischer@uu.nl/egil@egilfischer.nl      #
 ###################################################################################### 
 require(ggplot2)
+require(tidyverse)
 ### this function will first create a generation based table with states and then gives the final size distribution as 
 #output
 distFSfast <- function(R,s0in,i0in ,r0in = NULL)
@@ -75,6 +76,7 @@ pFS <- function(R,x,s0,i0,r0= NULL){
   return(prod(mapply(function(i,j)final.size.dist[i,j+1],c(1:length(s0)),x)))
 }
 
+
 ###Function to determine the probability of more extreme values given R####
 # r = R, x = final number of cases, s0 = initial susceptibles, i0 = initial infectious, comp = the type of extreme 
 #rm(pExtremes)
@@ -95,14 +97,15 @@ pExtremes<-  function(r,x,s0in,i0in,r0in = NULL, comp = `<`){
                      nrow =prod(s0in+1))[,1]
   }
   #produce final size distribution for value r
-final.size.dist <- distFSfast(r,s0in,i0in, r0in);
+  final.size.dist <- distFSfast(r,s0in,i0in, r0in);
 
   #define function for this distribution for the probability of a certain number of cases x in each of the trials
   pFSloc<- function(v){
     return(prod(mapply(function(i,j) {final.size.dist[i,j+1]},
                        c(1:length(s0in)),
                        v)))
-    }
+  }
+  
   #select the extremes by selecting those for which the total number of cases
   #and the sum of x are given by the comparison "comp"  thus either <,>,<= or >= 
   #calculate for each extreme the probability of the Final Size under the hypothesis R = r
@@ -132,7 +135,7 @@ final.size.dist <- distFSfast(r,s0in,i0in, r0in);
 
 # Final Size function for x cases, s0 initially susceptible and i0 initially infectious animals.r0 for recovered
 # Optional set sigficance level alpha, onesided testing 
-# max.val is the maximum value used for optimization.  
+# max.val is the maximum value used for optimization.  ####
 FinalSize<- function(x,s0,i0,r0 = NULL, 
                      alpha = 0.05, 
                      onesided = FALSE, 
@@ -172,3 +175,39 @@ FinalSize(c(7,4),c(40,19)-1, c(1,1))
 FinalSize(c(7),c(40)-1, c(1))
 FinalSize(c(6,2),c(24,12)-1, c(1,1))
 
+##################################################################################################
+#                                                                                                #
+#                  Function to compare R of two groups using the final size method               #
+#                  ref: Velthuis et al2007                                                                                                #
+##################################################################################################
+
+#TO DO
+
+# 
+# FinalSizeTreatments<- function(x,s0,i0,r0 = NULL, 
+#                                treatment, 
+#                                 alpha = 0.05, 
+#                      onesided = FALSE, 
+#                      max.val = 250, 
+#                      decimals = 4){
+#   #determine a function for the probability of difference z given R
+#   h <- function(z,zmax,R){
+#     c((zmax-z):0)%>%sapply(FUN = )%>%sum
+#   }
+#   #determine zmax
+#   zmax = x %>% group_by(treatment)%>% sum
+#   #create all possible outcomes of these transmission experiments
+#   #this means all possibilities between 0 and s0 contact infection (hence s0 + 1 options per trial)
+#   out <- matrix(ncol = length(s0in),nrow = prod(s0in+1))
+#   
+#   #determine function to maximize for probability 
+# }
+
+
+##################################################################################################
+#                                                                                                #
+#                  Power calculation of the final size method                            #
+#                  ref: Velthuis et al2007                                                                                                #
+##################################################################################################
+
+#TO DO

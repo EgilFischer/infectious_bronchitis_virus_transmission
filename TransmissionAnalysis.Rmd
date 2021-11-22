@@ -3,27 +3,27 @@ title: IBV Transmission study to determine the transmission of pathogenic IBV (C
   among vaccinated Commercial Broilers compared to that of unvaccinated birds
 author: "Egil A.J.Fischer"
 date: "16-11-2021"
-output: html_document
+output: 
+  # beamer_presentation:
+  #   theme: "AnnArbor"
+  #   colortheme: "dolphin"
+  #   fonttheme: "structurebold"
+  # # ioslides_presentation:
+  # #   widescreen: true
+  # #   smaller: true
+ pdf_document 
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-# Introduction 
-
-Estimation of transmission parameters from the IBV experiment in vaccinated and unvaccinated birds. 
-
-# Setting
 
 ## libraries
-Load required libraries
-
-```{r pressure, echo=FALSE}
+# Load required libraries
 ## First specify the packages of interest
 packages = c("tidyverse",
              "openxlsx",
-             "ggplot2")
+             "ggplot2",
+             "knitr")
 
 ## Now load or install&load all
 package.check <- lapply(
@@ -45,34 +45,45 @@ source("src/mapIBVdata.R")
 source("src/FinalSizeFastImplementation.R")
 
 ```
+# Document structure 
 
-## visualize data
+<!-- * Loading, visualization and selection of data -->
+* Estimation of the upperlimit of $R$ in the vaccinated and lowerlimit of $R$ in the unvaccinated birds (Velthuis et al. 2007). 
+* Considerations for next trials
 
-```{r}
-ggplot(data = sir.data[[1]])+
-  geom_path(aes(x = ndpch, y = I/N, colour = Strain, linetype = Vaccinated))+
-  labs(x = "dpch",y = "Fraction infecteds")+
-  theme_classic()
-
-ggplot(data = sir.data[[1]])+
-  geom_point(aes(x = ndpch, y = C))+
-  labs(x = "dpch",y = "Cases")+
-  theme_classic()+facet_grid(Strain~Vaccinated)
-
-
+Based on previous discussions the "M41" strain is excluded. 
+```{r , echo=FALSE}
+#exclude M41
+sir.data[[1]] <- sir.data[[1]]%>%filter(Strain != "M41")
+sir.data[[2]] <- sir.data[[2]]%>%filter(Strain != "M41")
 ```
+
+
+<!-- ## visualize data -->
+
+<!-- ```{r , echo=FALSE} -->
+<!-- ggplot(data = sir.data[[1]])+ -->
+<!--   geom_path(aes(x = ndpch, y = I/N, colour = Strain, linetype = Vaccinated))+ -->
+<!--   labs(x = "dpch",y = "Fraction positive")+ -->
+<!--   theme_classic() -->
+
+<!-- # ggplot(data = sir.data[[1]])+ -->
+<!-- #   geom_point(aes(x = ndpch, y = C))+ -->
+<!-- #   labs(x = "dpch",y = "Cases")+ -->
+<!-- #   theme_classic()+facet_grid(Strain~Vaccinated) -->
+
+
+<!-- ``` -->
 
 For the unvaccinated groups in the "GA08" strain challenged group all contact and seeder birds were positive at the first measurement. 
 In the vaccinated groups only a few seeders were positive, but none of the contacts. 
 
-Two different types of analyses will be done to estimate the upper- or lower bounds of transmission parameters. First I will use the final size method in which we use the total number of infected birds during the experiment to calculate the basic reproduction number. 
-Secondly by assuming the all positive seeder birds were positive at day 0 we calculate the transmission parameter. 
 
 # Final size
-```{r}
-#exclude M41
-sir.data[[1]] <- sir.data[[1]]%>%filter(Strain != "M41")
-sir.data[[2]] <- sir.data[[2]]%>%filter(Strain != "M41")
+
+The final size are the number of animals that were infected during the entire duration of an outbreak (or experiment). For small numbers the exact distribution can be determined numerically for a known value of $R$. This can be used to determine the most likely value of $R$ and its boundaries given an observed final size. In case of no or all contact animals being infected the most likely value is respectively 0 or $\inf$ and only the upper- and lower boundary of the confidence interval can be given. 
+
+```{r , echo=FALSE}
 
 #get final sizes and initial infections
 final.size <- sir.data[[1]]%>%
@@ -82,58 +93,116 @@ final.size <- sir.data[[1]]%>%
             iS = 10,
             iI = min(10,max(I)),
             iR = 10-min(10,max(I)))
+kable(caption = c("Input values for the final size calculations. fs = susceptibles end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
+  final.size)
+
+```
+
+```{r include = FALSE}
 FinalSize.dataframe <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, alpha = 0.05,onesided = TRUE, max.val = 250)
+  FinalSize(fsdata$iS - fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
+            alpha = 0.05,onesided = TRUE, max.val = 250)
 }
-FinalSize.dataframe(final.size, "Yes")%>%select(c(point.est,ci.ll,pval.below1))
-FinalSize.dataframe(final.size, "No")%>%select(c(point.est,ci.ul,pval.above1))
+```
+
+## $R$ of vaccinated
+
+```{r echo = FALSE}
+res <- NULL;
+res <- final.size%>%filter(Group == "DMV_1") %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1))
+res <- rbind(res,final.size%>%filter(Group == "GA08_1") %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+res<- rbind(res,final.size%>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+
+kable(cbind(strain = c("DMV","GA08","Both"),res),
+      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
+      digits = 2)
+```
+
+## $R$ of unvaccinated
+```{r echo = FALSE}
+
+res <- NULL;
+res <- final.size%>%filter(Group == "DMV_2") %>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1))
+res <- rbind(res,final.size%>%filter(Group == "GA08_2") %>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1)))
+res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1)))
+
+kable(cbind(strain = c("DMV","GA08","Both"),res),
+      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = lower limit, pval.below1 = probability $R$ is below 1"),
+      digits = 4)
 
 ```
-# Assume all seeders in unvaccinated to be infectious at first moment
-```{r}
-glmdat <- sir.data[[1]]%>%filter(S>0&I>0)
-fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat)
-summary(fit)
-signif(exp(cumsum(fit$coefficients)),3)
+<!-- # Assume all seeders in unvaccinated to be infectious at first moment -->
+<!-- ```{r} -->
+<!-- glmdat <- sir.data[[1]]%>%filter(S>0&I>0) -->
+<!-- fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat) -->
+<!-- summary(fit) -->
+<!-- signif(exp(cumsum(fit$coefficients)),3) -->
 
-fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat)
-summary(fit)
-signif(exp(cumsum(fit$coefficients)),3)
-# no sound estimation we redo the estimation and now we assume that the infectious birds were actually infected at dpch = 1
-adapt.sir.data <- sir.data[[1]]
-addfirstday <- adapt.sir.data%>%filter(ndpch ==1)
-addfirstday$dpch<-"1.dpch"
-addfirstday <- addfirstday%>%group_by(Group)%>%mutate(I = min(I,10),
-                                                      S = 10,
-                                                      C = 0)
-addfirstday$C <- (adapt.sir.data%>%filter(ndpch ==1))$I-addfirstday$I
-addfirstday<- data.frame(addfirstday)
-adapt.sir.data <- rbind(addfirstday, adapt.sir.data)
+<!-- fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat) -->
+<!-- summary(fit) -->
+<!-- signif(exp(cumsum(fit$coefficients)),3) -->
+<!-- # no sound estimation we redo the estimation and now we assume that the infectious birds were actually infected at dpch = 1 -->
+<!-- adapt.sir.data <- sir.data[[1]] -->
+<!-- addfirstday <- adapt.sir.data%>%filter(ndpch ==1) -->
+<!-- addfirstday$dpch<-"1.dpch" -->
+<!-- addfirstday <- addfirstday%>%group_by(Group)%>%mutate(I = min(I,10), -->
+<!--                                                       S = 10, -->
+<!--                                                       C = 0) -->
+<!-- addfirstday$C <- (adapt.sir.data%>%filter(ndpch ==1))$I-addfirstday$I -->
+<!-- addfirstday<- data.frame(addfirstday) -->
+<!-- adapt.sir.data <- rbind(addfirstday, adapt.sir.data) -->
 
-#fit the model
-glmdat <- adapt.sir.data%>%filter(S>0&I>0)
+<!-- #fit the model -->
+<!-- glmdat <- adapt.sir.data%>%filter(S>0&I>0) -->
 
-fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat)
-summary(fit)
-signif(exp(cumsum(fit$coefficients)),3)
+<!-- fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat) -->
+<!-- summary(fit) -->
+<!-- signif(exp(cumsum(fit$coefficients)),3) -->
 
-fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat)
-summary(fit)
-signif(exp(cumsum(fit$coefficients)),3)
+<!-- fit <- glm(C~Vaccinated,offset =-log(I/N),family = poisson(link = "log"),data = glmdat) -->
+<!-- summary(fit) -->
+<!-- signif(exp(cumsum(fit$coefficients)),3) -->
 
-```
+<!-- ``` -->
 
 
 # Some considerations for setting up follow-up experiments
 
-The number of successfull challenges in the vaccine groups was limited. Smaller groups could increase the risk of complete failure. 
-```{r}
-# The probability of an successfull challenge in the vaccine seeders is:
+From Table 3 in Velthuis et al 2007, we can already see that with two repetitions of 9 S0 and 9 I0 birds we can easily determine a difference in $R$. 
+
+```{r echo = FALSE}
+kable(label = "velthuis",
+  caption = "Table 3. in Velthuis et al. Power calculations for different experimental designs to find a difference in transmission between two treatment groups. Velthuis et al 2007",
+  x =  data.frame(S0I0 = c("(1, 1)", "(2,2)","(3,3)","(6,6)", "(9,9)","(18,18)"),
+             repetitions = c(18,9,6,3,2,1),
+             R1.5R0.5 = c(0.306,0.372,0.461,0.461,0.505,0.552),
+             R3.5R0.5 = c(0.814,0.886,0.932,0.938,0.950,0.957),
+             R10.0R0.5 = c(0.991,0.995,0.997,0.990,0.987,0.983),
+             R10.0R1.5 =  c(0.755,0.678,0.619,0.343,0.288,0.229),
+             R10.0R3.5 =c(0.224,0.080,0.040,0.004,0.002,0.001)),
+
+digits =3)
+             
+ 
+```
+
+The number of successful challenges in the vaccine groups was limited. Smaller groups could increase the risk of complete failure. 
+
+```{r echo = TRUE}
+# The probability of an successful challenge in the vaccine seeders is:
 p = 7/20
-#probability of zero succesfull challenges
-dbinom(0, 5,p)
-dbinom(0, 6,p)
-dbinom(0, 7,p)
+#probability of more than zero successful challenges
+ggplot(data = data.frame(x = c(1:10),
+        y = 1-sapply(c(1:10), dbinom, x =0, prob =p )), aes(x,y))+
+  geom_step()+
+  geom_point()+
+  scale_x_continuous(breaks = c(0:11))+
+  scale_y_continuous(limits = c(0,1))+
+  labs(x = "Seeders",y = "Pr(X>0)")+ggtitle("Probability of at least one positive challenged bird")
 
 ```
+
+# Reference
+
+Velthuis, A. G. J., Bouma, A., Katsma, W. E. A., Nodelijk, G., & De Jong, M. C. M. (2007). Design and analysis of small-scale transmission experiments with animals. Epidemiology and Infection, 135(2), 202–217. https://doi.org/10.1017/S095026880600673X

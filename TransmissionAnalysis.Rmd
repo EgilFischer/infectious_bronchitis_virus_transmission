@@ -104,6 +104,12 @@ FinalSize.dataframe <- function(fsdata, vac){
   FinalSize(fsdata$iS - fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
             alpha = 0.05,onesided = TRUE, max.val = 250)
 }
+
+FinalSize.dataframe.RisS <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  FinalSize(fsdata$iS - fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+            alpha = 0.05,onesided = TRUE, max.val = 250)
+}
 ```
 
 ## $R$ of vaccinated
@@ -132,6 +138,34 @@ kable(cbind(strain = c("DMV","GA08","Both"),res),
       digits = 4)
 
 ```
+
+## $R$ of vaccinated Non excreting challenged are S
+
+```{r echo = FALSE}
+res <- NULL;
+res <- final.size%>%filter(Group == "DMV_1") %>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1))
+res <- rbind(res,final.size%>%filter(Group == "GA08_1") %>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+
+kable(cbind(strain = c("DMV","GA08","Both"),res),
+      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
+      digits = 2)
+```
+
+<!-- ## $R$ of unvaccinated Non excreting challenged are S -->
+<!-- ```{r echo = FALSE} -->
+
+<!-- res <- NULL; -->
+<!-- res <- final.size%>%filter(Group == "DMV_2") %>%FinalSize.dataframe.RisS("No")%>%select(c(point.est,ci.ll,pval.below1)) -->
+<!-- res <- rbind(res,final.size%>%filter(Group == "GA08_2") %>%FinalSize.dataframe.RisS("No")%>%select(c(point.est,ci.ll,pval.below1))) -->
+<!-- res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c(point.est,ci.ll,pval.below1))) -->
+
+<!-- kable(cbind(strain = c("DMV","GA08","Both"),res), -->
+<!--       caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = lower limit, pval.below1 = probability $R$ is below 1"), -->
+<!--       digits = 4) -->
+
+<!-- ``` -->
+
 <!-- # Assume all seeders in unvaccinated to be infectious at first moment -->
 <!-- ```{r} -->
 <!-- glmdat <- sir.data[[1]]%>%filter(S>0&I>0) -->

@@ -14,19 +14,20 @@ package.check <- lapply(
 )
 
 ##load data 
-dataIBV = read.xlsx("C://Surfdrive//Projecten//CEVA//IBVexperiment//U-P-014 Animal Data-Christophe_38-40 neg (updated30Sep & 07Oct).xlsx"
-                    , sheet = "Vac (Group1)")
-dataIBV = rbind(dataIBV,read.xlsx("C://Surfdrive//Projecten//CEVA//IBVexperiment//U-P-014 Animal Data-Christophe_38-40 neg (updated30Sep & 07Oct).xlsx"
-                    , sheet = "Non Vac (Group 2)"))
-write.csv(dataIBV, file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVdata.csv")
+data.file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTransmission//data//054 Animal Data Christophe.xlsx"
+dataIBV = read.xlsx(data.file
+                    , sheet = "Vac (Group 1)")
+dataIBV = rbind(dataIBV,read.xlsx(data.file
+                    , sheet = "Non-Vac (Group 2)"))
+write.csv(dataIBV, file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTransmission//data//IBVdata.csv")
 
 #reclassify groups
-dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group)
+dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group,"_",dataIBV$REPL)
 
 
 sir.data = reform.SIR.data(dataIBV,
                 sampleday.vars = names(dataIBV)[7:19],
-                cut.off = 38.0,
+                cut.off = 36.0,
                 model = "SI",
                 SIR.state = F)
 

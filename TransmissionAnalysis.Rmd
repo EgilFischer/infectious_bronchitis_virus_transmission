@@ -89,10 +89,11 @@ The final size are the number of animals that were infected during the entire du
 final.size <- sir.data[[1]]%>%
   select(Group,Vaccinated, S,I)%>%
   group_by(Group,Vaccinated)%>%
-  summarize(fs = min(S),
+  summarize(fs = 10-last(S),
             iS = 10,
             iI = min(10,max(I)),
-            iR = 10-min(10,max(I)))
+            iR = 10-min(10,max(I)),
+            n = 20)
 kable(caption = c("Input values for the final size calculations. fs = susceptibles end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
   final.size)
 
@@ -101,13 +102,13 @@ kable(caption = c("Input values for the final size calculations. fs = susceptibl
 ```{r include = FALSE}
 FinalSize.dataframe <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  FinalSize(fsdata$iS - fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
+  FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
             alpha = 0.05,onesided = TRUE, max.val = 250)
 }
 
 FinalSize.dataframe.RisS <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  FinalSize(fsdata$iS - fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+  FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
             alpha = 0.05,onesided = TRUE, max.val = 250)
 }
 ```
@@ -116,11 +117,10 @@ FinalSize.dataframe.RisS <- function(fsdata, vac){
 
 ```{r echo = FALSE}
 res <- NULL;
-res <- final.size%>%filter(Group == "DMV_1") %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1))
-res <- rbind(res,final.size%>%filter(Group == "GA08_1") %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
-res<- rbind(res,final.size%>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1))
+res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ul,pval.above1)))
 
-kable(cbind(strain = c("DMV","GA08","Both"),res),
+kable(cbind(strain = c("DMV"),res),
       caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
       digits = 2)
 ```
@@ -143,11 +143,11 @@ kable(cbind(strain = c("DMV","GA08","Both"),res),
 
 ```{r echo = FALSE}
 res <- NULL;
-res <- final.size%>%filter(Group == "DMV_1") %>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1))
-res <- rbind(res,final.size%>%filter(Group == "GA08_1") %>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
-res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+res <- final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1))
+res <- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c(point.est,ci.ul,pval.above1)))
+#res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
 
-kable(cbind(strain = c("DMV","GA08","Both"),res),
+kable(cbind(strain = c("DMV"),res),
       caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
       digits = 2)
 ```

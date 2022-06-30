@@ -100,7 +100,7 @@ colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","St
                                                                 aggregate.data$Strain), 
                                                       FUN = function(x){sum(x==1,na.rm = TRUE)})
     ))
-    #determine the number of recoverd on this day
+    #determine the number of recovered on this day
     rec <- rbind(rec, data.frame(dpch = sampleday.vars[day],
                                  ndpch = day,
                                  aggregate.data.frame(aggregate.data[,sampleday.vars[day]], 
@@ -216,12 +216,17 @@ SIR.state<- function(in.data,#vector of consecutive samples
   if(model == "SI")
   {
     #if the first sample was positive return a vector of 1's
-    if(in.data[1] == 1)return(rep(1,length(out.data)))
+    if(!is.na(in.data[1])){
+    if(in.data[1] == 1)return(rep(1,length(out.data)))}
     #first positive samples and loop such that infection rule is fullfilled
     found = F; index = 1;index.first <- length(change)+1
     while(index <= length(change) & found == F & max(change==1,na.rm = T) == 1 )
     {
       index.first <- c(1:length(out.data))[change==1][index]
+      index.first.na <- c(1:length(out.data))[is.na(change)][index]
+      if(!is.na(index.first.na))
+      {
+        if(out.data[index.first.na]==1){index.first <- min(index.first,index.first.na)}}
       if(!is.na(index.first)){
         if(min(in.data[index.first:min(index.first+inf.rule-1, length(in.data))])==1)
         {

@@ -2,16 +2,16 @@
 title: IBV Transmission study to determine the transmission of pathogenic IBV (Challenge)
   among vaccinated Commercial Broilers compared to that of unvaccinated birds
 author: "Egil A.J.Fischer"
-date: "16-11-2021"
+date: "03-07-2022"
 output: 
-  # beamer_presentation:
-  #   theme: "AnnArbor"
-  #   colortheme: "dolphin"
-  #   fonttheme: "structurebold"
-  # # ioslides_presentation:
-  # #   widescreen: true
-  # #   smaller: true
- pdf_document 
+   # beamer_presentation:
+   #   theme: "AnnArbor"
+   #   colortheme: "dolphin"
+   #   fonttheme: "structurebold"
+   # ioslides_presentation:
+   #   widescreen: true
+   #   smaller: true
+ word_document 
 ---
 
 ```{r setup, include=FALSE}
@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 packages = c("tidyverse",
              "openxlsx",
              "ggplot2",
+             "lme4",
              "knitr")
 
 ## Now load or install&load all
@@ -48,10 +49,10 @@ source("src/FinalSizeFastImplementation.R")
 # Document structure 
 
 <!-- * Loading, visualization and selection of data -->
-* Estimation of the upperlimit of $R$ in the vaccinated and lowerlimit of $R$ in the unvaccinated birds (Velthuis et al. 2007). 
-* Considerations for next trials
+* Estimation of  $R$ in vaccinated and unvaccinated birds using final size estimation
+* Estimation of $\beta$ (transmission coefficient in birds per day) in vaccinated and unvaccinated birds using generalized linear model
+reference: (Velthuis et al. 2007)
 
-Based on previous discussions the "M41" strain is excluded. 
 ```{r , echo=FALSE}
 #exclude M41
 sir.data[[1]] <- sir.data[[1]]%>%filter(Strain != "M41")
@@ -102,53 +103,42 @@ kable(caption = c("Input values for the final size calculations. fs = susceptibl
 ```{r include = FALSE}
 FinalSize.dataframe <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
-            alpha = 0.05,onesided = TRUE, max.val = 250)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
 }
 
 FinalSize.dataframe.RisS <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
-            alpha = 0.05,onesided = TRUE, max.val = 250)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
 }
 ```
 
-## $R$ of vaccinated
+## $R$ with final size estimation
 
 ```{r echo = FALSE}
 res <- NULL;
-res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c(point.est,ci.ul,pval.above1))
-res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ul,pval.above1)))
+res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))
+res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)))
+colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1")
 
-kable(cbind(strain = c("DMV"),res),
-      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
+kable(cbind(res),
+      caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1"),
       digits = 2)
 ```
 
-## $R$ of unvaccinated
-```{r echo = FALSE}
 
-res <- NULL;
-res <- final.size%>%filter(Group == "DMV_2") %>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1))
-res <- rbind(res,final.size%>%filter(Group == "GA08_2") %>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1)))
-res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c(point.est,ci.ll,pval.below1)))
 
-kable(cbind(strain = c("DMV","GA08","Both"),res),
-      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = lower limit, pval.below1 = probability $R$ is below 1"),
-      digits = 4)
-
-```
-
-## $R$ of vaccinated Non excreting challenged are S
+## $R$ with final size estimation: Non excreting challenged are S
 
 ```{r echo = FALSE}
 res <- NULL;
-res <- final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1))
-res <- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c(point.est,ci.ul,pval.above1)))
-#res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("Yes")%>%select(c(point.est,ci.ul,pval.above1)))
+res <- final.size %>%FinalSize.dataframe.RisS("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))
+res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)))
+colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1")
 
-kable(cbind(strain = c("DMV"),res),
-      caption = c("Estimate of $R$ based on the final size. point.est = best value, ci.ul = upper limit, pval.above1 = probability $R$ is above 1"),
+kable(cbind(res),
+      caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1"),
       digits = 2)
 ```
 
@@ -201,39 +191,61 @@ kable(cbind(strain = c("DMV"),res),
 <!-- ``` -->
 
 
-# Some considerations for setting up follow-up experiments
+<!-- # Some considerations for setting up follow-up experiments -->
 
-From Table 3 in Velthuis et al 2007, we can already see that with two repetitions of 9 S0 and 9 I0 birds we can easily determine a difference in $R$. 
+<!-- From Table 3 in Velthuis et al 2007, we can already see that with two repetitions of 9 S0 and 9 I0 birds we can easily determine a difference in $R$.  -->
 
-```{r echo = FALSE}
-kable(label = "velthuis",
-  caption = "Table 3. in Velthuis et al. Power calculations for different experimental designs to find a difference in transmission between two treatment groups. Velthuis et al 2007",
-  x =  data.frame(S0I0 = c("(1, 1)", "(2,2)","(3,3)","(6,6)", "(9,9)","(18,18)"),
-             repetitions = c(18,9,6,3,2,1),
-             R1.5R0.5 = c(0.306,0.372,0.461,0.461,0.505,0.552),
-             R3.5R0.5 = c(0.814,0.886,0.932,0.938,0.950,0.957),
-             R10.0R0.5 = c(0.991,0.995,0.997,0.990,0.987,0.983),
-             R10.0R1.5 =  c(0.755,0.678,0.619,0.343,0.288,0.229),
-             R10.0R3.5 =c(0.224,0.080,0.040,0.004,0.002,0.001)),
+<!-- ```{r echo = FALSE} -->
+<!-- kable(label = "velthuis", -->
+<!--   caption = "Table 3. in Velthuis et al. Power calculations for different experimental designs to find a difference in transmission between two treatment groups. Velthuis et al 2007", -->
+<!--   x =  data.frame(S0I0 = c("(1, 1)", "(2,2)","(3,3)","(6,6)", "(9,9)","(18,18)"), -->
+<!--              repetitions = c(18,9,6,3,2,1), -->
+<!--              R1.5R0.5 = c(0.306,0.372,0.461,0.461,0.505,0.552), -->
+<!--              R3.5R0.5 = c(0.814,0.886,0.932,0.938,0.950,0.957), -->
+<!--              R10.0R0.5 = c(0.991,0.995,0.997,0.990,0.987,0.983), -->
+<!--              R10.0R1.5 =  c(0.755,0.678,0.619,0.343,0.288,0.229), -->
+<!--              R10.0R3.5 =c(0.224,0.080,0.040,0.004,0.002,0.001)), -->
 
-digits =3)
-             
- 
+<!-- digits =3) -->
+
+
+<!-- ``` -->
+
+<!-- The number of successful challenges in the vaccine groups was limited. Smaller groups could increase the risk of complete failure.  -->
+
+<!-- ```{r echo = TRUE} -->
+<!-- # The probability of an successful challenge in the vaccine seeders is: -->
+<!-- p = 7/20 -->
+<!-- #probability of more than zero successful challenges -->
+<!-- ggplot(data = data.frame(x = c(1:10), -->
+<!--         y = 1-sapply(c(1:10), dbinom, x =0, prob =p )), aes(x,y))+ -->
+<!--   geom_step()+ -->
+<!--   geom_point()+ -->
+<!--   scale_x_continuous(breaks = c(0:11))+ -->
+<!--   scale_y_continuous(limits = c(0,1))+ -->
+<!--   labs(x = "Seeders",y = "Pr(X>0)")+ggtitle("Probability of at least one positive challenged bird") -->
+
+<!-- ``` -->
+
+# Regression estimation of the transmission coefficient
+Using a complementary log-log link function in a generalized linear model, the transmission coefficient (number of infected birds in one day by one infectious bird) is estimated.
+
+```{r include = FALSE}
+sir.data[[1]]$deltat <- 1
+fit<-glm(cbind(C, S- C)~Vaccinated ,offset= log(deltat*I/N),family = binomial(link = "cloglog"), data = sir.data[[1]])
+
+summary(fit)
+
+exp(cumsum(fit$coefficients))
 ```
+```{r tablebeta}
+kable(cbind(summary(fit)$coefficients, confint(fit)),
+      caption = c("Estimate of log(beta) using glm."),
+      digits = 3)
 
-The number of successful challenges in the vaccine groups was limited. Smaller groups could increase the risk of complete failure. 
-
-```{r echo = TRUE}
-# The probability of an successful challenge in the vaccine seeders is:
-p = 7/20
-#probability of more than zero successful challenges
-ggplot(data = data.frame(x = c(1:10),
-        y = 1-sapply(c(1:10), dbinom, x =0, prob =p )), aes(x,y))+
-  geom_step()+
-  geom_point()+
-  scale_x_continuous(breaks = c(0:11))+
-  scale_y_continuous(limits = c(0,1))+
-  labs(x = "Seeders",y = "Pr(X>0)")+ggtitle("Probability of at least one positive challenged bird")
+kable(rbind(c("Estimate","2.5%","97.5%"),signif(cbind(exp(cumsum(summary(fit)$coefficients[,1])), exp(cumsum(confint(fit)[,1])),exp(cumsum(confint(fit)[,2]))),digits =3)),
+      caption = c("Transform to beta"),
+      digits = 3)
 
 ```
 

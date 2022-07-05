@@ -76,7 +76,8 @@ reform.data<- function(data,
       aggregate.data[ani,sampleday.vars]<-SIR.state(as.vector(aggregate.data[ani,sampleday.vars][1,]),
                                                     model = model,
                                                     inf.rule = inf.rule,
-                                                    rec.rule = rec.rule )
+                                                    rec.rule = rec.rule, 
+                                                    ani_nr = ani)
       
     }
     
@@ -201,12 +202,14 @@ colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","St
   
 }
 
+
 ###Determine state based on model ####
 SIR.state<- function(in.data,#vector of consecutive samples
                      model,#type of transmission model to use
                      inf.rule =1,
                      rec.rule =1,
-                     only.last = T #if only last cell is positive remove
+                     only.last = T, #if only last cell is positive remove
+                     ani_nr = -999
 ){
   out.data <- in.data;
   #determine potential infection and recovery events
@@ -252,7 +255,7 @@ SIR.state<- function(in.data,#vector of consecutive samples
   
   if(model == "SIR")
   {
-    #first positive samples and loop such that infection rule is fullfilled
+    #first positive samples and loop such that infection rule is full filled
     found = F; index = 1;index.first <- length(change)+1
     while(index <= length(change) & found == F & max(change==1,na.rm = T) == 1)
     {
@@ -268,10 +271,19 @@ SIR.state<- function(in.data,#vector of consecutive samples
           out.data[index.first]<- 0;
           #add 
           index = index + 1;}
-      }else{index = index + 1;}
+      }else{
+        #or actual value is false
+        index = index + 1;
+        }
     }
+    #if the first index is larger than the length of the data set it should actually be the first positive sample
+    if(found == F & index.first>length(change) & min(unlist(change[!is.na(change)]))==-1){
+      index.first <- min(c(1:length(change))[!is.na(out.data)])
+      }
     
-    #first negative samples and loop such that infection rule is fullfilled
+  
+    
+    #first negative samples and loop such that infection rule is full filled
     found = F; index = 1;index.last <- length(change)+1
     while(index <= length(change) & found == F)
     {
@@ -291,7 +303,7 @@ SIR.state<- function(in.data,#vector of consecutive samples
     }
     #get the NA's
     index.nas <- c(1:length(out.data))[is.na(out.data)]
-    if(is.na(index.first)|index.first> length(out.data))
+    if(is.na(index.first)|index.first > length(out.data))
     {
       index.first <- NA #no infection
       index.last<- NA #no recovery without infection
@@ -300,7 +312,8 @@ SIR.state<- function(in.data,#vector of consecutive samples
     #set all to one
     if(!is.na(index.first)){
       out.data[index.first:length(out.data)] <- 1
-      if(!is.na(index.last)){ out.data[(index.last):length(out.data)] <- 2}}
+      if(!is.na(index.last)){
+        out.data[(index.last):length(out.data)] <- 2}}
     out.data[index.nas] <- NA
   }
   

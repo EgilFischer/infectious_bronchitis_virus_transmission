@@ -19,16 +19,20 @@ dataIBV = read.xlsx(data.file
                     , sheet = "Vac (Group 1)")
 dataIBV = rbind(dataIBV,read.xlsx(data.file
                     , sheet = "Non-Vac (Group 2)"))
+#remove empty line
+dataIBV = dataIBV[!is.na(dataIBV$Vaccinated),]
+
 write.csv(dataIBV, file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTransmission//data//IBVdata.csv")
 
 #reclassify groups
 dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group,"_",dataIBV$REPL)
 
+dataIBV[73,]
 
 sir.data = reform.SIR.data(dataIBV,
-                sampleday.vars = names(dataIBV)[7:19],
+                sampleday.vars = names(dataIBV)[7:20],
                 cut.off = 36.0,
-                model = "SI",
+                model = "SIR",
                 SIR.state = F)
 
 

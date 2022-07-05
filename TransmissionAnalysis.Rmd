@@ -76,8 +76,6 @@ sir.data[[2]] <- sir.data[[2]]%>%filter(Strain != "M41")
 
 <!-- ``` -->
 
-For the unvaccinated groups in the "GA08" strain challenged group all contact and seeder birds were positive at the first measurement. 
-In the vaccinated groups only a few seeders were positive, but none of the contacts. 
 
 
 # Final size
@@ -95,8 +93,10 @@ final.size <- sir.data[[1]]%>%
             iI = min(10,max(I)),
             iR = 10-min(10,max(I)),
             n = 20)
-kable(caption = c("Input values for the final size calculations. fs = susceptibles end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
+kable(caption = c("Input values for the final size calculations. fs = susceptibles infected at end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
   final.size)
+
+
 
 ```
 
@@ -232,7 +232,7 @@ Using a complementary log-log link function in a generalized linear model, the t
 
 ```{r include = FALSE}
 sir.data[[1]]$deltat <- 1
-fit<-glm(cbind(C, S- C)~Vaccinated ,offset= log(deltat*I/N),family = binomial(link = "cloglog"), data = sir.data[[1]])
+fit<-glm(cbind(C, S- C)~Vaccinated ,offset= log(deltat*I/N),family = binomial(link = "cloglog"), data = sir.data[[1]]%>%filter(Strain == "DMV"))
 
 summary(fit)
 

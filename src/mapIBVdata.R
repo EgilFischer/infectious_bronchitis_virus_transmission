@@ -27,19 +27,29 @@ write.csv(dataIBV, file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTra
 #reclassify groups
 dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group,"_",dataIBV$REPL)
 
-dataIBV[73,]
-
 sir.data = reform.SIR.data(dataIBV,
                 sampleday.vars = names(dataIBV)[7:20],
-                cut.off = 36.0,
+                cut.off = 30.0,
                 model = "SIR",
+                exclude.seeder = T,
                 SIR.state = F)
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+sir.data[[1]]$replication = substrRight(sir.data[[1]]$Group,1)
 
+#check
+dataIBV[dataIBV$bird.id == 983,]
+sir.data[[2]][sir.data[[2]]$bird.id == 983,]
 
-# fit<- glm(cbind(C,S-C)~Group,
-#     offset = -log(I/N), 
-#     family = binomial(link ="cloglog"), 
-#     data =sir.data[[1]][sir.data[[1]]$I>0,])
-# summary(fit)
-# sir.data
+#fill in 40 for NA's
+dataIBVnona <- dataIBV
+dataIBVnona[is.na(dataIBVnona)]<-40.0000
+sir.data.nona =  reform.SIR.data(dataIBVnona,
+                                 sampleday.vars = names(dataIBVnona)[7:20],
+                                 cut.off = 30.0,
+                                 model = "SIR",
+                                 exclude.seeder = T,
+                                 SIR.state = F)
 
+sir.data.nona[[1]]$replication = substrRight(sir.data.nona[[1]]$Group,1)

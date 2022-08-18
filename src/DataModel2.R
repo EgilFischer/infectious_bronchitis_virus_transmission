@@ -144,12 +144,11 @@ colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","St
     
     #determine the number of new cases at this day
     if(day < length(sampleday.vars)){
-      
       if(exclude.seeder){
         cases <- rbind(cases, data.frame(dpch = sampleday.vars[day],
                                          ndpch = day,
-                                         cases =  aggregate.data.frame(
-                                           ((aggregate.data[tolower(aggregate.data$Challenge) == "contact",sampleday.vars[day+1]]==1)&(aggregate.data[tolower(aggregate.data$Challenge) == "contact",sampleday.vars[day]]==0)), 
+                                         cases =  aggregate.data.frame((
+                                           aggregate.data[tolower(aggregate.data$Challenge) == "contact",sampleday.vars[day+1]]-aggregate.data[tolower(aggregate.data$Challenge) == "contact",sampleday.vars[day]])>0, 
                                            by = list(aggregate.data$Group[tolower(aggregate.data$Challenge) == "contact"], 
                                                      aggregate.data$Vaccinated[tolower(aggregate.data$Challenge) == "contact"],
                                                      aggregate.data$Strain[tolower(aggregate.data$Challenge) == "contact"]), 
@@ -160,9 +159,9 @@ colnames(aggregate.data)[1:5]<- c("Group","bird.id","Vaccinated","Challenge","St
         cases <- rbind(cases, data.frame(dpch = sampleday.vars[day],
                                          ndpch = day,
                                          cases =  aggregate.data.frame((
-                                         aggregate.data[,sampleday.vars[day+1]]-aggregate.data[,sampleday.vars[day]])>0, 
-                                         by = list(aggregate.data$Group, aggregate.data$Vaccinated,aggregate.data$Strain), 
-                                         FUN = sum, na.rm = TRUE)))
+                                           aggregate.data[,sampleday.vars[day+1]]-aggregate.data[,sampleday.vars[day]])>0, 
+                                           by = list(aggregate.data$Group, aggregate.data$Vaccinated,aggregate.data$Strain), 
+                                           FUN = sum, na.rm = TRUE)))
       }
     }else {
       

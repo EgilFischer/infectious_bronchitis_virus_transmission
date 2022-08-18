@@ -59,21 +59,34 @@ print(paste("Analysis run at ",date()))
 
 reference: (Velthuis et al. 2007)
 
-```{r , echo=FALSE}
-#exclude M41
-sir.data[[1]] <- sir.data[[1]]%>%filter(Strain != "M41")
-sir.data[[2]] <- sir.data[[2]]%>%filter(Strain != "M41")
-```
-
-
 ## visualize data
 
 ```{r , echo=FALSE}
-ggplot(data = sir.data[[1]])+
-  geom_path(aes(x = ndpch, y = I/N, colour = Group, linetype = Vaccinated))+
-    labs(x = "dpch",y = "Fraction of animals")+
-  theme_classic()
+plotdata <- sir.data[[1]]
+plotdata$check <- plotdata$S +plotdata$I+plotdata$R -plotdata$N
+plotdata <- reshape2::melt(plotdata,id.vars = c("dpch","ndpch","Group","Vaccinated","Strain","replication"))
 
+
+ggplot(data = plotdata)+
+  geom_path(aes(x = ndpch, y = value, colour = replication, linetype = Vaccinated))+
+    labs(x = "dpch",y = "Fraction of infected animals")+
+  theme_classic()+ggtitle("Fraction of infections")+facet_grid(.~variable)
+
+
+ggplot(data = sir.data[[1]])+
+  geom_path(aes(x = ndpch, y = I/N, colour = replication, linetype = Vaccinated))+
+    labs(x = "dpch",y = "Fraction of infected animals")+
+  theme_classic()+ggtitle("Fraction of infections")
+
+ggplot(data = sir.data[[1]])+
+  geom_path(aes(x = ndpch, y = S, colour = replication, linetype = Vaccinated))+
+    labs(x = "dpch",y = "Number of susceptible animals")+
+  theme_classic()+ggtitle("Number of Susceptible")
+
+ggplot(data = sir.data[[1]])+
+  geom_path(aes(x = ndpch, y = R, colour = replication, linetype = Vaccinated))+
+    labs(x = "dpch",y = "Number of recovered animals")+
+  theme_classic()+ggtitle("Number of recovered")
 
 ```
 

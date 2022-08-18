@@ -1,8 +1,8 @@
 ##############################
 ##############################
-.libPaths("C:/R")
+
 library(ggplot2)
-# library(reshape2)
+library(reshape2)
 # library(rstan)
 # library(cowplot)
 
@@ -31,14 +31,45 @@ raw.plot <-function(raw.data){
   return(raw.data.melt)
 }
 
-head(raw.plot(sir.data[[2]]))
+# head(raw.plot(sir.data[[2]]))
+# 
+# ggplot(raw.plot(sir.data[[2]]),
+#        aes(as.factor(bird.id),fill = as.factor(value)))+
+#   geom_bar(position = "stack")+coord_flip()+
+#   facet_grid(Strain~Vaccinated )
 
-ggplot(raw.plot(sir.data[[2]]),
-       aes(as.factor(bird.id),fill = as.factor(value)))+
-  geom_bar(position = "stack")+coord_flip()+
-  facet_grid(Strain~Vaccinated )
+################
+# change data  #
+################
 
-
+transform.data <- function(sirdata){
+  out <-data.frame(animal_id =c(),
+                   inoculation=c(),
+                   group=c(),
+                   treatment=c(), 
+                   lastneg = c(),
+                   firstpos=c(),
+                   lastpos=c(),
+                   firstrec=c(),
+                   lastObs=c())
+  #iterate data
+  for(i in c(1:length(sirdata[,1])))
+  {
+          out <- rbind(out,
+                 data.frame(animal_id = sirdata[i,"bird.id"],
+                            inoculation = sirdata[i,"Challenge"],
+                            group = sirdata[i,"Group"],
+                            treatment = sirdata[i,"Vaccinated"], 
+                            lastneg = max(0,min(which(sirdata[i,] == 1)-5)-1),
+                            firstpos = min(which(sirdata[i,] == 1)-5),
+                            lastpos = max(which(sirdata[i,] == 1)-5),
+                            firstrec = min(which(sirdata[i,] == 2)-5),
+                            lastObs = max(which(!is.na(sirdata[i,]))-5))
+    )
+    
+  }
+  return(out)
+}
 
 #plot the input from a transmission experiment
 #data require the following headings: group, animal_id, inoc,lastneg, firstpos, lastpos, firstrec, lastObs
@@ -61,15 +92,30 @@ input.plot <- function(data, color_scheme = c("#999999","#E69F00", "#56B4E9", "#
   #melt down
   plot.data <- melt(plot.data,id = c("animal_id","inoculation","group","treatment"))
  #create a plot
-  p<-ggplot(data = plot.data)+
+  p1<-ggplot(data = plot.data[plot.data$treatment == "No",])+
     geom_bar(aes(y = value, x = as.factor(animal_id), fill = factor(variable,levels = c("neg1","negpos","pos","posneg2","neg2")[c(5,4,3,2,1)])),stat= 'identity')+
     coord_flip()+ 
-    scale_fill_manual('period', 
+    scale_fill_manual('State', 
+                     values = color_scheme,
+                     labels = period.labels[c(5,4,3,2,1)])+ylab("Days post challenge")+
+    xlab("animal ID")+
+    ggtitle("Unvaccinated")+
+    scale_y_continuous(breaks = c(0:14) )+
+    scale_x_discrete(limits = rev)+
+          if(length(unique(plot.data$group))>1){facet_grid(group + inoculation ~ ., scales = "free_y")}
+  
+  p2<-ggplot(data = plot.data[plot.data$treatment == "Yes",])+
+    geom_bar(aes(y = value, x = as.factor(animal_id), fill = factor(variable,levels = c("neg1","negpos","pos","posneg2","neg2")[c(5,4,3,2,1)])),stat= 'identity')+
+    coord_flip()+ 
+    scale_fill_manual('State', 
                       values = color_scheme,
                       labels = period.labels[c(5,4,3,2,1)])+ylab("Days post challenge")+
     xlab("animal ID")+
-    if(length(unique(plot.data$group))>1){facet_grid(treatment + group~., scales = "free_y")}
-  return(list(plot = p, data = plot.data))
+    ggtitle("Vaccinated")+
+    scale_y_continuous(breaks = c(0:14) )+
+    scale_x_discrete(limits = rev)+
+    if(length(unique(plot.data$group))>1){facet_grid(group + inoculation ~ ., scales = "free_y")}
+  return(list(plot1 = p1,plot2 = p2, data = plot.data))
 }
 
 
@@ -98,9 +144,10 @@ estimated.times.plot <- function(stan.fit, input.data){
      geom_violin(data = ex.data.latT, aes(x =variable, y = value), colour = "gray", fill ="green")+
       coord_flip()+
      scale_x_discrete()+
+     scale_y_discrete(limits = rev)+
      xlab("Animals")+
      ylab("time")+
-     if(length(unique(input.data$group))>1){facet_grid(treatment + group~., scales = "free_y")}
+     if(length(unique(input.data$group))>1){facet_grid(group ~ treatment, scales = "free_y")}
    return(list(plot = p))
 }
 

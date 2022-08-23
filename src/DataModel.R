@@ -46,6 +46,7 @@ reform.data<- function(data,
                        group.by = NULL, 
                        positive.if = c("max","min")[1],#max will use at least 1 positive sample, min all samples positive.
                        cut.off = 0,
+                       min.positive = 1,
                        exclude.seeder = T,
                        SIR.state = F,#False means that SIR status needs to be determined
                        category = "ON swab"
@@ -59,6 +60,19 @@ reform.data<- function(data,
     binary.data <- data; 
     binary.data[, sampleday.vars] <- lapply(binary.data[, sampleday.vars], 
                                              FUN = function(x){ifelse(x < cut.off,1,0)});
+    
+    #check for minimum of positive samples otherwise make all of them negative
+    for(j in c(1:length(binary.data[,1])))
+      {
+    
+       if(sum(binary.data[j, sampleday.vars],na.rm = T)<min.positive)
+       {
+         binary.data[j, sampleday.vars]<- binary.data[j, sampleday.vars]*0
+       }
+    }
+    
+      
+    
     #group positive samples based on positive.if statement if samples of the same bird are taken.
     aggregate.data <- aggregate.data.frame(binary.data[,sampleday.vars], 
                                            by = list(Group = binary.data$Group, 

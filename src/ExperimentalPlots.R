@@ -100,7 +100,7 @@ input.plot <- function(data, color_scheme = c("#999999","#E69F00", "#56B4E9", "#
                      labels = period.labels[c(5,4,3,2,1)])+ylab("Days post challenge")+
     xlab("animal ID")+
     ggtitle("Unvaccinated")+
-    scale_y_continuous(breaks = c(0:14) )+
+    scale_y_continuous(breaks = c(-1:14) )+
     scale_x_discrete(limits = rev)+
           if(length(unique(plot.data$group))>1){facet_grid(group + inoculation ~ ., scales = "free_y")}
   
@@ -112,7 +112,7 @@ input.plot <- function(data, color_scheme = c("#999999","#E69F00", "#56B4E9", "#
                       labels = period.labels[c(5,4,3,2,1)])+ylab("Days post challenge")+
     xlab("animal ID")+
     ggtitle("Vaccinated")+
-    scale_y_continuous(breaks = c(0:14) )+
+    scale_y_continuous(breaks = c(-1:14) )+
     scale_x_discrete(limits = rev)+
     if(length(unique(plot.data$group))>1){facet_grid(group + inoculation ~ ., scales = "free_y")}
   return(list(plot1 = p1,plot2 = p2, data = plot.data))

@@ -29,10 +29,14 @@ dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group,"_",dataIBV$REPL)
 
 sir.data = reform.SIR.data(dataIBV,
                 sampleday.vars = names(dataIBV)[7:20],
-                cut.off = 30.0,
+                cut.off = 36.0,
+                min.positive = 2,
                 model = "SIR",
                 exclude.seeder = T,
                 SIR.state = F)
+
+
+
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }

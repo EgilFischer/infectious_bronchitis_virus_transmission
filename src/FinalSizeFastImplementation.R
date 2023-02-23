@@ -175,6 +175,7 @@ FinalSize(c(7,4),c(40,19)-1, c(1,1))
 FinalSize(c(7),c(40)-1, c(1))
 FinalSize(c(6,2),c(24,12)-1, c(1,1))
 
+
 ##################################################################################################
 #                                                                                                #
 #                  Function to compare R of two groups using the final size method               #
@@ -203,6 +204,29 @@ FinalSize(c(6,2),c(24,12)-1, c(1,1))
 #   #determine function to maximize for probability 
 # }
 
+Test.TwoPops<-  function(x,s0,i0,treat){
+  #create all possible outcomes of these transmission experiments
+  #this means all possibilities between 0 and s0 contact infection (hence s0 + 1 options per trial)
+  out <- matrix(ncol = length(s0),nrow = prod(s0+1))
+  #repeat the outcome as many times as the previous trial possibilities
+  for(k in c(1:length(s0)))
+  {
+    #check how often to repeat the same number given previous trials
+    repetition <- ifelse(k > 1,prod(s0[1:k-1]+1),1)
+    #put it in the matrix
+    out[,k]<- matrix(sapply(c(0:s0[k]),FUN = function(x){rep(x,repetition)}), ncol = 1, nrow =prod(s0+1))[,1]
+  }
+  #if needed change treatment to boolean
+  treat = as.logical(str_replace(str_replace(c("Yes","No"),"Yes","TRUE"),"No","False"));
+  
+  #Select those possible outcomes for which the difference is <= sum(x[!treat]) - sum(x[treat])
+  #and sum all probabilities of these same or extreme outcomes
+  likeFun <- function(R){sum(apply(out[sapply(X = apply(out[,!treat],1,sum)-apply(out[,treat],1,sum), FUN = function(z){abs(z) >=  sum(x[!treat])-sum(x[treat])}),],1,function(ext){pFS(R,ext,s0,i0)}))}
+  #find R with the maximum probability of occurence, this is the p-value for R1 = R2
+  return(optimize(interval = c(0,25),f = likeFun, maximum = TRUE)$objective)
+}
+
+Test.TwoPops(final.size$fs,final.size$iS,final.size$iI,final.size$Vaccinated)
 
 ##################################################################################################
 #                                                                                                #

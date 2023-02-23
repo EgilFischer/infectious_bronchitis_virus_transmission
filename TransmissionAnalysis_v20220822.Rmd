@@ -108,15 +108,16 @@ kable(caption = c("Input values for the final size calculations. fs = susceptibl
 ```{r include = FALSE}
 FinalSize.dataframe <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,0, 
             alpha = 0.05,onesided = TRUE, max.val = 250))
 }
 
 FinalSize.dataframe.RisS <- function(fsdata, vac){
   fsdata <- fsdata%>%filter(Vaccinated == vac)
-  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS- fsdata$iR+10,fsdata$iI,0, 
             alpha = 0.05,onesided = TRUE, max.val = 250))
 }
+
 ```
 
 ## $R$ with final size estimation
@@ -134,29 +135,31 @@ kable(cbind(res),
 
 
 
-<!-- ## $R$ with final size estimation: Non excreting challenged are S -->
+## $R$ with final size estimation: Non excreting challenged are S
 
-<!-- ```{r echo = FALSE} -->
-<!-- res <- NULL; -->
-<!-- res <- final.size %>%FinalSize.dataframe.RisS("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)) -->
-<!-- res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))) -->
-<!-- colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1") -->
+```{r echo = FALSE}
+res <- NULL;
+res <- final.size %>%FinalSize.dataframe.RisS("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))
+res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)))
+colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1")
 
-<!-- kable(cbind(res), -->
-<!--       caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1"), -->
-<!--       digits = 2) -->
-<!-- ``` -->
+kable(cbind(res),
+      caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1"),
+      digits = 2)
+```
 
 # Estimate beta
-<!-- ## all animals -->
-<!-- ```{r} -->
-<!-- glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0) -->
-<!-- fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat) -->
-<!-- summary(fit) -->
-<!-- signif(exp(cumsum(fit$coefficients)),3) -->
-<!-- ``` -->
+## all animals
+```{r}
+glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0)
+glmdat$Vaccinated<- relevel(factor(glmdat$Vaccinated), ref = "No")
+fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat)
+summary(fit)
+signif(exp(cumsum(fit$coefficients)),3)
+exp(confint(fit))
+```
 
-<!-- ## only estimate for unvaccinated aniamals -->
+## only estimate for unvaccinated aniamals
 
 ```{r include = F}
 glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0)

@@ -59,7 +59,7 @@ reform.data<- function(data,
     #start with a recoding data to binary yes/no
     binary.data <- data; 
     binary.data[, sampleday.vars] <- lapply(binary.data[, sampleday.vars], 
-                                             FUN = function(x){ifelse(x < cut.off,1,0)});
+                                             FUN = function(x){ifelse(x <= cut.off,1,0)});
     
     #check for minimum of positive samples otherwise make all of them negative
     for(j in c(1:length(binary.data[,1])))

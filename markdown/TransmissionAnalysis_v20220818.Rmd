@@ -45,10 +45,10 @@ options(warn = -1)
 Source required code-files including loading the data
 
 ```{r echo=FALSE}
-source("src/DataModel.R")
-source("src/ExperimentalPlots.R")
-source("src/mapIBVdata.R")
-source("src/FinalSizeFastImplementation.R")
+source("src/DataModel.R")             #functions used to map the raw data for use in analyses
+source("src/ExperimentalPlots.R")     #functions to plot the data
+source("src/mapIBVdata.R")            #Map the data of this IBR experimetn
+source("src/FinalSizeFastImplementation.R") #Functions to do the final size calculations
 ```
 
 # Document structure 

@@ -14,7 +14,7 @@ package.check <- lapply(
 )
 
 ##load data 
-data.file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTransmission//data//054 Animal Data Christophe.xlsx"
+data.file = "./data/F054_Animal_Data_Christophe.xlsx"
 dataIBV = read.xlsx(data.file
                     , sheet = "Vac (Group 1)")
 dataIBV = rbind(dataIBV,read.xlsx(data.file
@@ -22,7 +22,7 @@ dataIBV = rbind(dataIBV,read.xlsx(data.file
 #remove empty line
 dataIBV = dataIBV[!is.na(dataIBV$Vaccinated),]
 
-write.csv(dataIBV, file = "C://Surfdrive//Projecten//CEVA//IBVexperiment//IBVTransmission//data//IBVdata.csv")
+write.csv(dataIBV, file = "./data/IBVdata.csv")
 
 #reclassify groups
 dataIBV$Group = paste0(dataIBV$Strain,"_",dataIBV$Group,"_",dataIBV$REPL)
@@ -57,3 +57,4 @@ sir.data.nona =  reform.SIR.data(dataIBVnona,
                                  SIR.state = F)
 
 sir.data.nona[[1]]$replication = substrRight(sir.data.nona[[1]]$Group,1)
+

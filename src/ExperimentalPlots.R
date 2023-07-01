@@ -1,10 +1,17 @@
-##############################
-##############################
+#########################################################
+#                                                        
+#                  PLot experimental data for transmission experiments                                
+#                                                        
+#                  Author:   E.A.J. Fischer                            
+#                  Contact:  e.a.j.fischer@uu.nl                             
+#                  Creation date: 8-6-'23                         
+#########################################################
+
+#load libraries #############################
 
 library(ggplot2)
 library(reshape2)
-# library(rstan)
-# library(cowplot)
+
 
 
 ############################
@@ -31,18 +38,12 @@ raw.plot <-function(raw.data){
   return(raw.data.melt)
 }
 
-# head(raw.plot(sir.data[[2]]))
-# 
-# ggplot(raw.plot(sir.data[[2]]),
-#        aes(as.factor(bird.id),fill = as.factor(value)))+
-#   geom_bar(position = "stack")+coord_flip()+
-#   facet_grid(Strain~Vaccinated )
 
-################
-# change data  #
-################
+###################################
+# change data to be able to plot  #
+###################################
 
-transform.data <- function(sirdata){
+transform.data.for.plot <- function(sirdata){
   out <-data.frame(animal_id =c(),
                    inoculation=c(),
                    group=c(),

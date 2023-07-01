@@ -5,7 +5,7 @@
 #                     Copyright R-code: Egil A.J.Fischer                             #
 #                                       e.a.j.fischer@uu.nl/egil@egilfischer.nl      #
 ###################################################################################### 
-require(ggplot2)
+
 require(tidyverse)
 ### this function will first create a generation based table with states and then gives the final size distribution as 
 #output
@@ -56,18 +56,6 @@ distFSfast <- function(R,s0in,i0in ,r0in = NULL)
      return(gen.mat.out)
 }
 
-#plot final size
-plotFSdist <- function(R,s0in,i0in ,r0in = NULL){
-  n <- s0in + i0in + ifelse(is.null(r0in),0,r0in);
-  input <- data.frame(final.size = c(1:n),
-                   prob = c(distFSfast(R,s0in, i0in,r0in)));
-  return(ggplot(data = input)+
-           geom_col(aes(x = final.size, y = prob)))
-  
-  
-}
-
-#plotFSdist(1.636,20,1,0)+xlab("Final size")+ylab("Prob")+theme_bw()
 
 pFS <- function(R,x,s0,i0,r0= NULL){
   #produce final size distribution for value r
@@ -165,15 +153,6 @@ FinalSize<- function(x,s0,i0,r0 = NULL,
   return(signif(res, digits = decimals))
 }
 
-#tests for same code as Mathematica book of Mart de Jong
-#FinalSize(c(0,0,0,0),c(2,2,2,2),c(2,2,2,2),onesided = T)
-#FinalSize(c(2,2,2,2),c(2,2,2,2),c(2,2,2,2),onesided = T)
-#FinalSize(c(2,1,1,0),c(2,2,2,2),c(2,2,2,2)) 
-# FinalSize(c(3),c(20),c(20),max.val = 50) 
-# 
-# FinalSize(c(7,4),c(40,19)-1, c(1,1))
-# FinalSize(c(7),c(40)-1, c(1))
-# FinalSize(c(6,2),c(24,12)-1, c(1,1))
 
 
 ##################################################################################################
@@ -182,27 +161,7 @@ FinalSize<- function(x,s0,i0,r0 = NULL,
 #                  ref: Velthuis et al2007                                                                                                #
 ##################################################################################################
 
-#TO DO
 
-# 
-# FinalSizeTreatments<- function(x,s0,i0,r0 = NULL, 
-#                                treatment, 
-#                                 alpha = 0.05, 
-#                      onesided = FALSE, 
-#                      max.val = 250, 
-#                      decimals = 4){
-#   #determine a function for the probability of difference z given R
-#   h <- function(z,zmax,R){
-#     c((zmax-z):0)%>%sapply(FUN = )%>%sum
-#   }
-#   #determine zmax
-#   zmax = x %>% group_by(treatment)%>% sum
-#   #create all possible outcomes of these transmission experiments
-#   #this means all possibilities between 0 and s0 contact infection (hence s0 + 1 options per trial)
-#   out <- matrix(ncol = length(s0in),nrow = prod(s0in+1))
-#   
-#   #determine function to maximize for probability 
-# }
 
 Test.TwoPops<-  function(x,s0,i0,treat){
   #create all possible outcomes of these transmission experiments
@@ -215,24 +174,29 @@ Test.TwoPops<-  function(x,s0,i0,treat){
     repetition <- ifelse(k > 1,prod(s0[1:k-1]+1),1)
     #put it in the matrix
     out[,k]<- matrix(sapply(c(0:s0[k]),FUN = function(x){rep(x,repetition)}), ncol = 1, nrow =prod(s0+1))[,1]
+    
   }
+  #select those for which the rowSum == sum(x)
+  out<- out[rowSums(out)==sum(x),]
+  
   #if needed change treatment to boolean
   treat = as.logical(str_replace(str_replace(c("Yes","No"),"Yes","TRUE"),"No","False"));
   
-  #Select those possible outcomes for which the difference is <= sum(x[!treat]) - sum(x[treat])
+  #Select those possible outcomes for which the difference is >= sum(x[!treat]) - sum(x[treat])
+  extremes <- out[sapply(X = apply(out[,!treat],1,sum)-apply(out[,treat],1,sum), FUN = function(z){abs(z) >=  sum(x[!treat])-sum(x[treat])}),]
   #and sum all probabilities of these same or extreme outcomes
-  likeFun <- function(R){sum(apply(out[sapply(X = apply(out[,!treat],1,sum)-apply(out[,treat],1,sum), FUN = function(z){abs(z) >=  sum(x[!treat])-sum(x[treat])}),],1,function(ext){pFS(R,ext,s0,i0)}))}
+  likeFun <- function(R){
+    sum(apply(extremes,1,function(ext){pFS(R,ext,s0,i0)}))
+  }
+  #check extreme R-values if the difference is very large
+  ext1 <- likeFun(0);
+  ext2 <- likeFun(10);
+  if(ext1 == ext2) return(ext1)
   #find R with the maximum probability of occurence, this is the p-value for R1 = R2
   return(optimize(interval = c(0,25),f = likeFun, maximum = TRUE)$objective)
 }
 
-#Test.TwoPops(final.size$fs,final.size$iS,final.size$iI,final.size$Vaccinated)
 
-##################################################################################################
-#                                                                                                #
-#                  Power calculation of the final size method                            #
-#                  ref: Velthuis et al2007                                                                                                #
-##################################################################################################
 
 
 

@@ -45,10 +45,11 @@ options(warn = -1)
 Source required code-files including loading the data
 
 ```{r echo=FALSE}
-source("src/DataModel.R")
-source("src/ExperimentalPlots.R")
-source("src/mapIBVdata.R")
-source("src/FinalSizeFastImplementation.R")
+setwd("..") #temporarily set the working directory
+source("./src/DataModel.R")
+source("./src/ExperimentalPlots.R")
+source("./src/mapIBVdata.R")
+source("./src/FinalSizeFastImplementation.R")
 ```
 
 # Document structure 
@@ -58,16 +59,16 @@ source("src/FinalSizeFastImplementation.R")
 * Estimation of  $R$ in vaccinated and unvaccinated birds using final size estimation
 *
 
-reference: (Velthuis et al. 2007)
+Reference: (Velthuis et al. 2007)
 
 ## visualize data
 
 Assuming that all samples with Ct < 36 means detection of the virus, and that animals are assumed to be infected and infectious between the first and last sample with Ct < 36 (even if in between Ct-values are above 36), the status of each bird at each days is determined. The definition of a susceptible birds is those never been positive. Recovered birds are those after the last positive sample. In the figure below the time interval from negative to postive and positive to negative is indicated.
 
-```{r echo = F}
+```{r echo = F, warnings=False}
 options(warn = -1)
-input.plot(transform.data(sir.data[[2]]))$plot1
-input.plot(transform.data(sir.data[[2]]))$plot2
+input.plot(transform.data.for.plot(sir.data[[2]]))$plot1
+input.plot(transform.data.for.plot(sir.data[[2]]))$plot2
 
 ```
 
@@ -87,8 +88,8 @@ final.size <- sir.data[[1]]%>%
   group_by(Group,Vaccinated)%>%
   summarize(fs = 10-last(S),
             iS = 10,
-            iI = 10,#min(10,max(I)),
-            iR = 0,#-min(10,max(I)),
+            iI = min(10,max(I)),
+            iR = 10-min(10,max(I)),
             n = 20)
 kable(caption = c("Input values for the final size calculations. fs = susceptibles infected at end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
   final.size)
@@ -126,29 +127,10 @@ kable(cbind(res),
 
 
 
-<!-- ## $R$ with final size estimation: Non excreting challenged are S -->
 
-<!-- ```{r echo = FALSE} -->
-<!-- res <- NULL; -->
-<!-- res <- final.size %>%FinalSize.dataframe.RisS("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)) -->
-<!-- res<- rbind(res,final.size%>%FinalSize.dataframe.RisS("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))) -->
-<!-- colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1") -->
-
-<!-- kable(cbind(res), -->
-<!--       caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1"), -->
-<!--       digits = 2) -->
-<!-- ``` -->
 
 # Estimate beta
-<!-- ## all animals -->
-<!-- ```{r} -->
-<!-- glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0) -->
-<!-- fit <- glm(cbind(C,S-C)~Vaccinated,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat) -->
-<!-- summary(fit) -->
-<!-- signif(exp(cumsum(fit$coefficients)),3) -->
-<!-- ``` -->
 
-<!-- ## only estimate for unvaccinated aniamals -->
 
 ```{r include = F}
 glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0)
@@ -277,11 +259,11 @@ kable(cbind(Rests),
 
 # Summary
 
-* Vaccination will reduce the R value from a value larger than 1 to below 1. The best estimate for vaccinated groups is $R = 0$ with upper limit 0.32. For unvaccinated the $R$ estimated from final size is $\infty$ with lower limit of 2.06.
+* Vaccination will reduce the R value from a value larger than 1 to below 1. The best estimate for vaccinated groups is $R = 0$ with upper limit `r res[[1,4]]`. For unvaccinated the $R$ estimated from final size is $\infty$ with lower limit of `r res[[2,3]]`.
 * In the unvaccinated group some variation in transmission times was observed. The transmission coefficient $\beta$ and the infectious period could be estimated from which a more precise R value could be calculated:
-  + $\beta$ is 0.58 (0.37 - 0.90)
-  + $Tinf$ is 7.80 (7.46 -	8.14)
-  + $R_0$ is 4.55 (2.85 -	7.29) (small difference with beta*Tinf because of rounding. )
+  + $\beta$ is `r beta.est[[1]]` (`r beta.est[[2]]` - `r beta.est[[3]]`)
+  + $Tinf$ is `r av.infT.vaccinated.adjusted[[2]]`  (`r av.infT.vaccinated.adjusted[[5]]` -	`r av.infT.vaccinated.adjusted[[6]]`)
+  + $R_0$ is `r Rests[[1]]` (`r Rests[[2]]` -	`r Rests[[3]]`) (small difference with beta*Tinf because of rounding. )
 
 
 # Reference

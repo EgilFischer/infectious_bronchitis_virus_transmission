@@ -1,6 +1,6 @@
 ####################################################################
-#       NDV data model                                             #
-#       Casts a data set with measurements pre day into a data set #
+#      Data model                                                  #
+#       Casts a data set with measurements per day into a data set #
 #       that can be used for parameters estimation                 #
 ####################################################################
 

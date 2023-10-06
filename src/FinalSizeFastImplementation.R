@@ -131,10 +131,13 @@ FinalSize<- function(x,s0,i0,r0 = NULL,
                      decimals = 4){
   res <- data.frame(point.est = -999)
   #determine the point estimate by optimization of the log-likelihood function
-  res$point.est <- ifelse(sum(x)==0,0,
-                          ifelse(sum(x)==sum(s0),Inf,
-                    optimize(interval = c(0.,max.val),
-                        f = function(R){-log(pFS(R,x,s0,i0,r0))})$minimum))
+  tmp <- if(sum(x)==0) {(list(minimum = c(0), objective = c(0)))}else
+    {if(sum(x)==sum(s0)){(list(minimum = c(Inf),objective =  c(0)))}else
+      {(optimize(interval = c(0.,max.val),
+                       f = function(R){-log(pFS(R,x,s0,i0,r0))}))}}
+                              
+  res$point.est = tmp$minimum
+  res$LL = tmp$objective
   #determine the confidence intervals
   #if one-sided is FALSE both sides, either only lower or upper limit of CI
   #lowerlimit is found for values of R for which the probability of extremes below the observations 

@@ -110,14 +110,25 @@ FinalSize.dataframe.RisS <- function(fsdata, vac){
   cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
             alpha = 0.05,onesided = TRUE, max.val = 250))
 }
+
+#To be sure we check if any of the groups differ
+FinalSize.dataframe.pergroup <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
+}
+
 ```
+
+
+
 
 ## $R$ with final size estimation
 
 ```{r echo = FALSE}
 res <- NULL;
-res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1))
-res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1)))
+res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1,LL))
+res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1,LL))
 colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1")
 
 kable(cbind(res),

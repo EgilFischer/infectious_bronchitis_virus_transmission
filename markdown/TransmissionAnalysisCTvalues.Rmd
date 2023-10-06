@@ -1,0 +1,282 @@
+---
+title: IBV Transmission study to determine the transmission of pathogenic IBV (Challenge)
+  among vaccinated Commercial Broilers compared to that of unvaccinated birds
+author: "Egil A.J.Fischer"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+   # beamer_presentation:
+   #   theme: "AnnArbor"
+   #   colortheme: "dolphin"
+   #   fonttheme: "structurebold"
+   # ioslides_presentation:
+   #   widescreen: true
+   #   smaller: true
+ word_document 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## libraries
+# Load required libraries
+## First specify the packages of interest
+packages = c("tidyverse",
+             "openxlsx",
+             "ggplot2",
+             "lme4",
+             "knitr",
+             "cowplot",
+             "reshape2")
+
+## Now load or install&load all
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+options(warn = -1)
+```
+
+Source required code-files including loading the data
+
+```{r echo=FALSE}
+setwd("..") #temporarily set the working directory
+source("./src/DataModel.R")
+source("./src/ExperimentalPlots.R")
+source("./src/mapIBVdata.R")
+source("./src/FinalSizeFastImplementation.R")
+```
+
+# Document structure 
+
+* Visualization and summarizing data
+* Final size method
+* Estimation of  $R$ in vaccinated and unvaccinated birds using final size estimation
+*
+
+Reference: (Velthuis et al. 2007)
+
+## visualize data
+
+Assuming that all samples with Ct < 36 means detection of the virus, and that animals are assumed to be infected and infectious between the first and last sample with Ct < 36 (even if in between Ct-values are above 36), the status of each bird at each days is determined. The definition of a susceptible birds is those never been positive. Recovered birds are those after the last positive sample. In the figure below the time interval from negative to postive and positive to negative is indicated.
+
+```{r echo = F, warnings=False}
+options(warn = -1)
+input.plot(transform.data.for.plot(sir.data[[2]]))$plot1
+input.plot(transform.data.for.plot(sir.data[[2]]))$plot2
+
+```
+
+In the unvaccinated groups we see a quick transmission of the infection within a few day post exposure. In three days all contact animals are infected. In the vaccinated groups non of the contact animals are infected, and only a proportion of the challenged birds. 
+For the vaccinated birds the estimation of a transmission rate $\beta$ is not possible. For both vaccinated and unvaccinated birds estimation of $R$ using the final size method (see below) is possible for the respectively upper and lower confidence boundary, and testing whether it differs from 1. 
+The infectious period of the unvaccinated birds seems to be similar in challenged and unchallenged birds. These will be estimated as well. 
+
+# Final size method
+
+The final size are the number of animals that were infected during the entire duration of an outbreak (or experiment). For small numbers the exact distribution can be determined numerically for a known value of $R$. This can be used to determine the most likely value of $R$ and its boundaries given an observed final size. In case of no or all contact animals being infected the most likely value is respectively 0 or $\infty$ and only the upper- and lower boundary of the confidence interval can be given. 
+
+```{r  echo=FALSE}
+
+#get final sizes and initial infections
+final.size <- sir.data[[1]]%>%
+  select(Group,Vaccinated, S,I)%>%
+  group_by(Group,Vaccinated)%>%
+  summarize(fs = 10-last(S),
+            iS = 10,
+            iI = min(10,max(I)),
+            iR = 10-min(10,max(I)),
+            n = 20)
+kable(caption = c("Input values for the final size calculations. fs = susceptibles infected at end of experiment, iS = contact birds beginning of experiment, iI = challenged birds that excreed during experiment, iR = challenged birds that do not excrete"),
+  final.size)
+
+
+
+```
+
+```{r include = FALSE}
+FinalSize.dataframe <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS,fsdata$iI,fsdata$iR, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
+}
+
+FinalSize.dataframe.RisS <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
+}
+
+#To be sure we check if any of the groups differ
+FinalSize.dataframe.pergroup <- function(fsdata, vac){
+  fsdata <- fsdata%>%filter(Vaccinated == vac)
+  cbind(unique(fsdata$Vaccinated),FinalSize(fsdata$fs,fsdata$iS+fsdata$iR,fsdata$iI,0, 
+            alpha = 0.05,onesided = TRUE, max.val = 250))
+}
+
+```
+
+
+
+
+## $R$ with final size estimation
+
+```{r echo = FALSE}
+res <- NULL;
+res <- final.size %>%FinalSize.dataframe("Yes")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1,LL))
+res<- rbind(res,final.size%>%FinalSize.dataframe("No")%>%select(c("unique(fsdata$Vaccinated)",point.est,ci.ll,ci.ul,pval.above1,LL)))
+colnames(res)<- c("Vaccinated","Estimate","95%-LL", "95%-UL","pval.above1","LogLik")
+
+kable(cbind(res),
+      caption = c("Estimate of $R$ based on the final size. Estimate = best value, 95%-LL= lower limit,95%-UL = upper limit, pval.above1 = probability $R$ is above 1, LogLik is log-likelihood"),
+      digits = 2)
+```
+
+
+
+
+
+# Estimate beta
+```{r include = F}
+glmdat <- sir.data.nona[[1]]%>%filter(S>0&I>0)
+fit.beta <- glm(cbind(C,S-C)~Group,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat[glmdat$Vaccinated == "No",])
+drop1(fit.beta)
+fit.beta <- glm(cbind(C,S-C)~1,offset =-log(I/N),family = binomial(link = "cloglog"),data = glmdat[glmdat$Vaccinated == "No",])
+summary(fit.beta)
+beta.unvac<- signif(exp(cumsum(fit.beta$coefficients)),3)
+cf <- signif(confint(fit.beta),2)
+cf.beta.unvac<- as.data.frame(signif(exp(cf),2))
+beta.est <- cbind(data.frame(est.beta = beta.unvac),`2.5%-CI`=cf.beta.unvac[1,],`97.5%-CI`=cf.beta.unvac[2,])
+rownames(beta.est)<- ""
+```
+
+```{r echo = F}
+kable(beta.est,
+      caption = c("Transmission coefficient unvaccinated birds"),
+      digits = 2)
+```
+
+# Estimate the infectious period 
+
+```{r include = F}
+infT.data <- sir.data[[2]];
+get.replicate <- function(x){strsplit(x = x,split = "_")}
+infT.data$replication <- unlist(get.replicate(infT.data$Group))[c(1:(3*length(infT.data$Group)))[(1:(3*length(infT.data$Group))%%3)==0]]
+inf.per.data<- infT.data[,c(1,2,3,4, 6:19,20),]%>%melt(id.var = c("Group","bird.id","Challenge","Vaccinated","replication"))%>% filter(value ==1)%>%group_by(Group,bird.id,Challenge,Vaccinated,replication)%>%summarize(
+    infT = sum(value,na.rm = T)
+)
+
+
+av.infT <- inf.per.data%>%group_by(Group, Challenge,Vaccinated,replication)%>%
+  summarize(mean = mean(infT), sd = sd(infT),df = (length(infT)-1), `2.5%-CI` = mean(infT) + qt(p = 0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)),
+`97.5%-CI` = mean(infT) + qt(p = 1-0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)) )
+
+av.infT.group <- inf.per.data%>%group_by(Group)%>%summarize(mean = mean(infT), sd = sd(infT),df = (length(infT)-1), `2.5%-CI` = mean(infT) + qt(p = 0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)),
+`97.5%-CI` = mean(infT) + qt(p = 1-0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)) )
+
+av.infT.challenge<- inf.per.data%>%group_by(Challenge)%>%summarize(mean = mean(infT), sd = sd(infT),df = (length(infT)-1), `2.5%-CI` = mean(infT) + qt(p = 0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)),
+`97.5%-CI` = mean(infT) + qt(p = 1-0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)) )
+
+av.infT.vaccinated <- inf.per.data%>%group_by(Vaccinated)%>%summarize(mean = mean(infT), sd = sd(infT),df = (length(infT)-1), `2.5%-CI` = mean(infT) + qt(p = 0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)),
+`97.5%-CI` = mean(infT) + qt(p = 1-0.05 / 2, df = (length(infT)-1)) * sd(infT) / sqrt(length(infT)) )
+
+anova <- lm(infT ~  Challenge + Vaccinated+replication, data = inf.per.data)
+drop1(anova)
+anova <- lm(infT ~  Vaccinated + replication, data = inf.per.data)
+drop1(anova)
+anova <- lm(infT ~ Vaccinated , data = inf.per.data)
+drop1(anova)
+library(lme4)
+me<- lmer(infT ~ Vaccinated + Challenge + (1|replication) , data = inf.per.data)
+summary(me)
+me<- lmer(infT ~ Vaccinated  + (1|replication) , data = inf.per.data)
+summary(me)
+```
+
+```{r}
+ggplot(inf.per.data)+geom_histogram(aes(infT),binwidth = 1)+facet_grid(Challenge~Group)
+```
+
+
+```{r echo = F}
+kable(cbind(av.infT[,c(2:length(av.infT))]),
+      caption = c("Average infectious periods for each group"),
+      digits = 2)
+
+```
+From the histograms and table it is already evident that the vaccination affects the infectious period. There seems to be no difference between challenged and contact infected birds, but some difference between replicates is not excluded. Therefore, we include the replication as a random effect in the analyses. In this way the analyses adjusts for clustering within a replicate. This does not affect the average values but increases precision of the estimates. 
+
+```{r}
+anova.re <- lme4::lmer(infT ~ (1|replication) + Challenge+Vaccinated, data = inf.per.data)
+summary(anova.re)
+"Interclass correlation coefficient"
+performance::icc(anova.re)
+
+```
+
+No strong effect of the grouping in replicates thus for simplicity we do not use random effects model. 
+
+```{r}
+fit.inft <- lm(infT ~ Vaccinated+Challenge, data = inf.per.data)
+drop1(fit.inft)
+
+```
+
+Conclusion there is not difference between the model with and without challenge (difference in AIC less than 2). Still we choose for the most parsimonious model without challenge. 
+
+```{r include = F}
+fit.dc <- lm(infT ~ Vaccinated, data = inf.per.data)
+av.infT.vaccinated.adjusted <- av.infT.vaccinated
+
+adjcf <- confint(fit.dc)
+av.infT.vaccinated.adjusted[1,5]<- adjcf[1,1]
+av.infT.vaccinated.adjusted[1,6]<- adjcf[1,2]
+av.infT.vaccinated.adjusted[2,5]<- adjcf[2,1]+av.infT.vaccinated.adjusted[1,"mean"]
+av.infT.vaccinated.adjusted[2,6]<- adjcf[2,2]+av.infT.vaccinated.adjusted[1,"mean"]
+
+fit.dc.log <- lm(log(infT) ~ Vaccinated, data = inf.per.data)
+summary(fit.dc.log)
+```
+
+```{r echo = F}
+kable(cbind(av.infT.vaccinated.adjusted),
+      caption = c("Average infectious periods per treatment"),
+      digits = 2)
+
+options(warn = 0)
+``` 
+
+# R value of unvaccinated calculated from $\beta$ and $Tinf$
+```{r include = F}
+logbeta.var<- (summary(fit.beta)$coefficients[,2])^2
+loginfT.var<- (summary(fit.dc.log)$coefficients[1,2])^2
+logR.var <- logbeta.var +loginfT.var
+
+R.mean <- exp(summary(fit.beta)$coefficients[,1])*(summary(fit.dc)$coefficients[1,1])
+R.confint <- exp(log(R.mean) + qnorm(c(0.025,0.975)) * sqrt(logR.var))
+ 
+Rests <- cbind(data.frame(R.est = c(R.mean)),`2.5%-CI`= c(R.confint[1]),`97.5%-CI`= c(R.confint[2]))
+```
+
+```{r echo = F}
+kable(cbind(Rests),
+      caption = c("Reproduction number of unvaccinated animals"),
+      digits = 2)
+```
+
+# Summary
+
+* Vaccination will reduce the R value from a value larger than 1 to below 1. The best estimate for vaccinated groups is $R = 0$ with upper limit `r res[[1,4]]`. For unvaccinated the $R$ estimated from final size is $\infty$ with lower limit of `r res[[2,3]]`.
+* In the unvaccinated group some variation in transmission times was observed. The transmission coefficient $\beta$ and the infectious period could be estimated from which a more precise R value could be calculated:
+  + $\beta$ is `r beta.est[[1]]` (`r beta.est[[2]]` - `r beta.est[[3]]`)
+  + $Tinf$ is `r av.infT.vaccinated.adjusted[[2]]`  (`r av.infT.vaccinated.adjusted[[5]]` -	`r av.infT.vaccinated.adjusted[[6]]`)
+  + $R_0$ is `r Rests[[1]]` (`r Rests[[2]]` -	`r Rests[[3]]`) (small difference with beta*Tinf because of rounding. )
+
+
+# Reference
+
+Velthuis, A. G. J., Bouma, A., Katsma, W. E. A., Nodelijk, G., & De Jong, M. C. M. (2007). Design and analysis of small-scale transmission experiments with animals. Epidemiology and Infection, 135(2), 202–217. https://doi.org/10.1017/S095026880600673X

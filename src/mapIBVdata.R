@@ -13,7 +13,7 @@ package.check <- lapply(
   }
 )
 
-##load data 
+##load data for Ct values
 data.file = "./data/F054_Animal_Data_Christophe.xlsx"
 dataIBV = read.xlsx(data.file
                     , sheet = "Vac (Group 1)")

@@ -1,7 +1,8 @@
 ####################################################################
-#       NDV data model                                             #
+#       IBV data model                                             #
 #       Casts a data set with measurements pre day into a data set #
 #       that can be used for parameters estimation                 #
+#       State 0 = susceptible, state 1 = infectious, state 2 = recovered
 ####################################################################
 
 #fill in groups and types of birds when NA
@@ -46,6 +47,7 @@ reform.data<- function(data,
                        group.by = NULL, 
                        positive.if = c("max","min")[1],#max will use at least 1 positive sample, min all samples positive.
                        cut.off = 0,
+                       cut.off.dir = "leq",#direction of cut-off
                        min.positive = 1,
                        exclude.seeder = T,
                        SIR.state = F,#False means that SIR status needs to be determined
@@ -58,8 +60,13 @@ reform.data<- function(data,
   if(!SIR.state){
     #start with a recoding data to binary yes/no
     binary.data <- data; 
+    compare.function = if(cut.off.dir == "leq"){function(x){ifelse(x <= cut.off,1,0)}}else
+      if(cut.off.dir == "geq"){function(x){ifelse(x >= cut.off,1,0)}}else
+        if(cut.off.dir == "l"){function(x){ifelse(x < cut.off,1,0)}}else
+          if(cut.off.dir == "g"){function(x){ifelse(x > cut.off,1,0)}}
+      
     binary.data[, sampleday.vars] <- lapply(binary.data[, sampleday.vars], 
-                                             FUN = function(x){ifelse(x <= cut.off,1,0)});
+                                             FUN = compare.function);
     
     #check for minimum of positive samples otherwise make all of them negative
     for(j in c(1:length(binary.data[,1])))
@@ -86,7 +93,8 @@ reform.data<- function(data,
     #recode based on transmission model
     for(ani in c(1:length(aggregate.data[,1])))
     {
-     
+   
+      
       aggregate.data[ani,sampleday.vars]<-SIR.state(as.vector(aggregate.data[ani,sampleday.vars][1,]),
                                                     model = model,
                                                     inf.rule = inf.rule,
@@ -304,15 +312,16 @@ SIR.state<- function(in.data,#vector of consecutive samples
         }
     }
     #if the first index is larger than the length of the data set it should actually be the first positive sample
+    if(!is.na(index.first)){
     if(found == F & index.first>length(change) & min(unlist(change[!is.na(change)]))==-1){
       index.first <- min(c(1:length(change))[!is.na(out.data)])
       }
-    
+    }
   
     
     #first negative samples and loop such that infection rule is full filled
-    found = F; index = 1;index.last <- length(change)+1
-    while(index <= length(change) & found == F)
+    found = F; index = 1;index.last <- length(change)+1; 
+    while(index <= length(change) & found == F & sum(out.data)>0)#there are changes and found is false and there is at least one moment that the animal became positive.
     {
       index.last <- c(1:length(out.data))[change== -1 & !is.na(change)][index]
       if(!is.na(index.last))

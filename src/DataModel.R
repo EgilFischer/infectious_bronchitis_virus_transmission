@@ -1,6 +1,7 @@
 ####################################################################
 #       IBV data model                                             #
 #       Casts a data set with measurements pre day into a data set #
+
 #       that can be used for parameters estimation                 #
 #       State 0 = susceptible, state 1 = infectious, state 2 = recovered
 ####################################################################

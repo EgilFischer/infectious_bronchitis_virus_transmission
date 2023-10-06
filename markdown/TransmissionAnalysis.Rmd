@@ -45,11 +45,13 @@ options(warn = -1)
 Source required code-files including loading the data
 
 ```{r echo=FALSE}
+
 setwd("..") #temporarily set the working directory
 source("./src/DataModel.R")
 source("./src/ExperimentalPlots.R")
 source("./src/mapIBVdata.R")
 source("./src/FinalSizeFastImplementation.R")
+
 ```
 
 # Document structure 
